@@ -1,6 +1,7 @@
 from keras.callbacks import TensorBoard
 from tensorflow.summary import FileWriter
 
+
 class CustomTensorBoard(TensorBoard):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)

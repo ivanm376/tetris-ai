@@ -1,3 +1,5 @@
+python 3.7
+
 tensorflow
 tensorboard
 Keras
@@ -5,3 +7,5 @@ opencv-python
 numpy
 Pillow
 tqdm
+
+Formatter:  pip3.7 install black

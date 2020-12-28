@@ -1,3 +1,10 @@
+import os
+
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+import tensorflow as tf
+
+tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
+from time import sleep
 from dqn_agent import DQNAgent
 from tetris import Tetris
 from datetime import datetime
@@ -5,7 +12,7 @@ from statistics import mean, median
 import random
 from logs import CustomTensorBoard
 from tqdm import tqdm
-        
+
 
 # Run dqn with Tetris
 def dqn():
@@ -21,19 +28,27 @@ def dqn():
     log_every = 50
     replay_start_size = 2000
     train_every = 1
-    n_neurons = [32, 32]
+    n_neurons = [64, 32, 16]
     render_delay = None
-    activations = ['relu', 'relu', 'linear']
+    activations = ['relu', 'relu', 'relu', 'linear']
 
-    agent = DQNAgent(env.get_state_size(),
-                     n_neurons=n_neurons, activations=activations,
-                     epsilon_stop_episode=epsilon_stop_episode, mem_size=mem_size,
-                     discount=discount, replay_start_size=replay_start_size)
+    agent = DQNAgent(
+        env.get_state_size(),
+        epsilon=0,
+        n_neurons=n_neurons,
+        activations=activations,
+        epsilon_stop_episode=epsilon_stop_episode,
+        mem_size=mem_size,
+        discount=discount,
+        replay_start_size=replay_start_size,
+    )
 
     log_dir = f'logs/tetris-nn={str(n_neurons)}-mem={mem_size}-bs={batch_size}-e={epochs}-{datetime.now().strftime("%Y%m%d-%H%M%S")}'
     log = CustomTensorBoard(log_dir=log_dir)
 
     scores = []
+    scores_sum = 0
+    score_max = 0
 
     for episode in tqdm(range(episodes)):
         current_state = env.reset()
@@ -48,26 +63,38 @@ def dqn():
         # Game
         while not done and (not max_steps or steps < max_steps):
             next_states = env.get_next_states()
+            # print('\n\n', next_states)
             best_state = agent.best_state(next_states.values())
-            
+
             best_action = None
             for action, state in next_states.items():
                 if state == best_state:
                     best_action = action
                     break
 
-            reward, done = env.play(best_action[0], best_action[1], render=render,
-                                    render_delay=render_delay)
-            
+            reward, done = env.play(best_action[0], best_action[1], render=render, render_delay=render_delay)
+
             agent.add_to_memory(current_state, next_states[best_action], reward, done)
             current_state = next_states[best_action]
             steps += 1
 
-        scores.append(env.get_game_score())
+        score = env.get_game_score()
+        scores.append(score)
+        scores_sum += score
+        if score > score_max:
+            score_max = score
+
+        if episode != 0 and episode % render_every == 0:
+            # print('SCORES SUM:', scores_sum, 'AVG:', scores_sum / render_every, 'MAX:', score_max)
+            scores_sum = 0
+            score_max = 0
 
         # Train
-        if episode % train_every == 0:
-            agent.train(batch_size=batch_size, epochs=epochs)
+        # if episode % train_every == 0:
+        #    agent.train(batch_size=batch_size, epochs=epochs)
+
+        print('Done!')
+        sleep(30)
 
         # Logs
         if log_every and episode and episode % log_every == 0:
@@ -75,8 +102,7 @@ def dqn():
             min_score = min(scores[-log_every:])
             max_score = max(scores[-log_every:])
 
-            log.log(episode, avg_score=avg_score, min_score=min_score,
-                    max_score=max_score)
+            log.log(episode, avg_score=avg_score, min_score=min_score, max_score=max_score)
 
 
 if __name__ == "__main__":
