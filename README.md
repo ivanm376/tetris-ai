@@ -1,3 +1,11 @@
+# Docker
+
+>docker build -t tetris_image -f Dockerfile_tetris .
+>docker run -d -e DISPLAY --name tetris_container tetris_image
+>docker run -d -v /tmp/.X11-unix:/tmp/.X11-unix --name tetris_container tetris_image
+>docker run -d -e DISPLAY -v /tmp/.X11-unix:/tmp/.X11-unix --name tetris_container tetris_image
+>docker exec -u root -it tetris_container bash
+
 # tetris-ai
 
 A bot that plays [tetris](https://en.wikipedia.org/wiki/Tetris) using deep reinforcement learning.
